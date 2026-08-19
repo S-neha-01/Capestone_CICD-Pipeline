@@ -34,6 +34,10 @@ values locally; never commit the populated `.env` (already gitignored).
 
 The compose file provisions MongoDB plus all four Node.js microservices. S3 credentials are optional for local testing—you can still browse seeded metadata, but streaming requires valid S3 objects.
 
+All six containers (`frontend`, `auth`, `streaming`, `admin`, `chat`, `mongo`) running healthy:
+
+![StreamingApp containers running in Docker Desktop](./docs/screenshots/docker-desktop-containers.png)
+
 ## Local Development
 
 Install dependencies for each service:
