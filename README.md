@@ -30,6 +30,10 @@ values locally; never commit the populated `.env` (already gitignored).
    ```bash
    docker-compose up --build
    ```
+   Resulting images:
+
+   ![docker images output showing all 5 built service images](./docs/screenshots/docker-images-list.png)
+
 3. Navigate to `http://localhost:3000` for the web app:
 
 ![StreamingApp frontend running at localhost:3000](./docs/screenshots/frontend-live.png)
