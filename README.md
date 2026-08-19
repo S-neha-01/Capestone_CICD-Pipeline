@@ -30,7 +30,9 @@ values locally; never commit the populated `.env` (already gitignored).
    ```bash
    docker-compose up --build
    ```
-3. Navigate to `http://localhost:3000` for the web app.
+3. Navigate to `http://localhost:3000` for the web app:
+
+![StreamingApp frontend running at localhost:3000](./docs/screenshots/frontend-live.png)
 
 The compose file provisions MongoDB plus all four Node.js microservices. S3 credentials are optional for local testing—you can still browse seeded metadata, but streaming requires valid S3 objects.
 
