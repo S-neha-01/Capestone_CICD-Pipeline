@@ -117,6 +117,20 @@ Tried the shared academy Jenkins (`jenkinsacademics.herovired.com`) with the
 brief's provided credentials — returned `401 Unauthorized`; not pursued further
 without valid credentials.
 
+Validated the exact `docker build` commands from the "Build Images" stage
+locally (not just an equivalent build — the literal commands, same tags,
+same context paths) — all 5 succeeded:
+```bash
+docker build -t frontend:latest -t frontend:${IMAGE_TAG} frontend
+docker build -t authservice:latest -t authservice:${IMAGE_TAG} backend/authService
+docker build -f backend/streamingService/Dockerfile -t streamingservice:latest -t streamingservice:${IMAGE_TAG} backend
+docker build -f backend/adminService/Dockerfile -t adminservice:latest -t adminservice:${IMAGE_TAG} backend
+docker build -f backend/chatService/Dockerfile -t chatservice:latest -t chatservice:${IMAGE_TAG} backend
+```
+This confirms the pipeline's build stage will work as written once Jenkins
+actually runs it — only the ECR login/push and EKS deploy stages remain
+unverified pending AWS access.
+
 **Pending:** EC2 instance launch, Jenkins credential setup for `sneha-ecr-cred`, first pipeline run.
 
 ---
