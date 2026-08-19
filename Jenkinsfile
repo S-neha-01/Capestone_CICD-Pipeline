@@ -4,9 +4,9 @@ pipeline {
     environment {
         AWS_REGION = "us-west-1"
         ACCOUNT_ID = "975050024946"
-        ECR_BASE = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/batch-14/rajsaw"
+        ECR_BASE = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/batch-14/sneha"
         IMAGE_TAG = "${BUILD_NUMBER}"
-        EKS_CLUSTER = "rajsaw-streaming-cluster"
+        EKS_CLUSTER = "sneha-streaming-cluster"
         K8S_NAMESPACE = "streamingapp"
         HELM_RELEASE = "streamingapp"
     }
@@ -58,7 +58,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'rajsaw-ecr-cred'
+                    credentialsId: 'sneha-ecr-cred'
                 ]]) {
                     sh """
                     aws ecr get-login-password --region ${AWS_REGION} | \
@@ -151,7 +151,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'rajsaw-ecr-cred'
+                    credentialsId: 'sneha-ecr-cred'
                 ]]) {
                     sh """
                     set -e

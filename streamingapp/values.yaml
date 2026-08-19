@@ -19,7 +19,7 @@ mongo:
 # Microservice definitions rendered by the chart.
 frontend:
   enabled: true
-  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/rajsaw/frontend:latest
+  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/sneha/frontend:latest
   port: 80
   imagePullPolicy: IfNotPresent
   livenessProbe:
@@ -33,7 +33,7 @@ frontend:
 
 authService:
   enabled: true
-  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/rajsaw/authservice:latest
+  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/sneha/authservice:latest
   port: 3001
   imagePullPolicy: IfNotPresent
   env:
@@ -54,7 +54,7 @@ authService:
 
 streamingService:
   enabled: true
-  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/rajsaw/streamingservice:latest
+  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/sneha/streamingservice:latest
   port: 3002
   imagePullPolicy: IfNotPresent
   env:
@@ -75,7 +75,7 @@ streamingService:
 
 adminService:
   enabled: true
-  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/rajsaw/adminservice:latest
+  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/sneha/adminservice:latest
   port: 3003
   imagePullPolicy: IfNotPresent
   env:
@@ -96,7 +96,7 @@ adminService:
 
 chatService:
   enabled: true
-  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/rajsaw/chatservice:latest
+  image: 975050024946.dkr.ecr.us-west-1.amazonaws.com/batch-14/sneha/chatservice:latest
   port: 3004
   imagePullPolicy: IfNotPresent
   env:
