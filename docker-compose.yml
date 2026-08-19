@@ -12,6 +12,8 @@ services:
   auth:
     build:
       context: ./backend/authService
+    env_file:
+      - .env
     depends_on:
       - mongo
     environment:
@@ -22,7 +24,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-rajk-saw-batch-14}
     ports:
       - "${AUTH_PORT:-3001}:3001"
 
@@ -30,6 +32,8 @@ services:
     build:
       context: ./backend
       dockerfile: streamingService/Dockerfile
+    env_file:
+      - .env
     depends_on:
       - mongo
     environment:
@@ -40,7 +44,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-rajk-saw-batch-14}
       AWS_CDN_URL: ${AWS_CDN_URL:-}
       STREAMING_PUBLIC_URL: ${STREAMING_PUBLIC_URL:-http://localhost:3002}
     ports:
@@ -50,6 +54,8 @@ services:
     build:
       context: ./backend
       dockerfile: adminService/Dockerfile
+    env_file:
+      - .env
     depends_on:
       - mongo
     environment:
@@ -60,7 +66,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-rajk-saw-batch-14}
       AWS_CDN_URL: ${AWS_CDN_URL:-}
     ports:
       - "${ADMIN_PORT:-3003}:3003"
@@ -69,6 +75,8 @@ services:
     build:
       context: ./backend
       dockerfile: chatService/Dockerfile
+    env_file:
+      - .env
     depends_on:
       - mongo
     environment:
@@ -89,6 +97,8 @@ services:
         REACT_APP_ADMIN_API_URL: ${REACT_APP_ADMIN_API_URL:-http://localhost:3003/api/admin}
         REACT_APP_CHAT_API_URL: ${REACT_APP_CHAT_API_URL:-http://localhost:3004/api/chat}
         REACT_APP_CHAT_SOCKET_URL: ${REACT_APP_CHAT_SOCKET_URL:-http://localhost:3004}
+    env_file:
+      - .env
     depends_on:
       - auth
       - streaming

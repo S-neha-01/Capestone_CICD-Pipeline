@@ -47,10 +47,12 @@ const streamVideo = async (req, res) => {
     }
 
     const bucket = process.env.AWS_S3_BUCKET;
-    if (!bucket) {
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID || process.env.AWS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY;
+    if (!bucket || !accessKeyId || !secretAccessKey) {
       return res.status(500).json({
         success: false,
-        message: 'S3 bucket is not configured',
+        message: 'S3 is not configured',
       });
     }
 
@@ -101,6 +103,12 @@ const streamVideo = async (req, res) => {
     }
   } catch (error) {
     console.error('Error streaming video:', error);
+    if (error.name === 'CredentialsProviderError' || error.message.includes('credentials') || error.message.includes('InvalidAccessKeyId')) {
+      return res.status(500).json({
+        success: false,
+        message: 'S3 credentials are not configured for production use',
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Error streaming video',
@@ -200,10 +208,12 @@ const getThumbnail = async (req, res) => {
     }
 
     const bucket = process.env.AWS_S3_BUCKET;
-    if (!bucket) {
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID || process.env.AWS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY;
+    if (!bucket || !accessKeyId || !secretAccessKey) {
       return res.status(500).json({
         success: false,
-        message: 'S3 bucket is not configured',
+        message: 'S3 is not configured',
       });
     }
 
@@ -229,6 +239,12 @@ const getThumbnail = async (req, res) => {
     }
   } catch (error) {
     console.error('Error fetching thumbnail:', error);
+    if (error.name === 'CredentialsProviderError' || error.message.includes('credentials') || error.message.includes('InvalidAccessKeyId')) {
+      return res.status(500).json({
+        success: false,
+        message: 'S3 credentials are not configured for production use',
+      });
+    }
     res.status(404).json({
       success: false,
       message: 'Thumbnail not found',

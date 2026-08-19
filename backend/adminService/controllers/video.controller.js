@@ -12,6 +12,11 @@ const ensureBucket = () => {
   if (!bucket) {
     throw new Error('AWS_S3_BUCKET is not configured');
   }
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID || process.env.AWS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_KEY;
+  if (!accessKeyId || !secretAccessKey) {
+    throw new Error('AWS credentials are not configured');
+  }
 };
 
 const formatVideo = (doc) => {
