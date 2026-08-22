@@ -9,7 +9,7 @@
 #     --key-name <your-key-pair> \
 #     --security-group-ids <sg-allowing-22-and-8080> \
 #     --user-data file://infra/jenkins-ec2-userdata.sh \
-#     --region us-west-1
+#     --region us-east-1
 set -euxo pipefail
 
 # --- Java (required by Jenkins) ---

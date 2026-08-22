@@ -1,12 +1,12 @@
 # Step 9 (Bonus) — ChatOps via SNS + Slack
 
-Run once AWS access is available. Region: `us-west-1`.
+Run once AWS access is available. Region: `us-east-1`.
 
 ## 1) Create SNS topics
 
 ```bash
-aws sns create-topic --name sneha-deploy-success --region us-west-1
-aws sns create-topic --name sneha-deploy-failure --region us-west-1
+aws sns create-topic --name sneha-deploy-success --region us-east-1
+aws sns create-topic --name sneha-deploy-failure --region us-east-1
 ```
 
 Note the returned `TopicArn` for each — used below and in the Jenkinsfile `post` block.
@@ -26,14 +26,14 @@ Add to the existing `post` block:
 post {
     success {
         sh """
-        aws sns publish --region us-west-1 \\
+        aws sns publish --region us-east-1 \\
           --topic-arn <sneha-deploy-success-arn> \\
           --message 'StreamingApp build #${BUILD_NUMBER} deployed successfully to EKS'
         """
     }
     failure {
         sh """
-        aws sns publish --region us-west-1 \\
+        aws sns publish --region us-east-1 \\
           --topic-arn <sneha-deploy-failure-arn> \\
           --message 'StreamingApp build #${BUILD_NUMBER} failed — check Jenkins console'
         """

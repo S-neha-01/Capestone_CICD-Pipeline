@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = "us-west-1"
-        ACCOUNT_ID = "975050024946"
-        ECR_BASE = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/batch-14/sneha"
+        AWS_REGION = "us-east-1"
+        ACCOUNT_ID = "378436334075"
+        ECR_BASE = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/streamingapp"
         IMAGE_TAG = "${BUILD_NUMBER}"
         EKS_CLUSTER = "sneha-streaming-cluster"
         K8S_NAMESPACE = "streamingapp"

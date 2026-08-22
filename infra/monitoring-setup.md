@@ -1,6 +1,6 @@
 # Step 6 — Monitoring and Logging (CloudWatch)
 
-Run once EC2/EKS access is available. Region: `us-west-1`.
+Run once EC2/EKS access is available. Region: `us-east-1`.
 
 ## 1) Container logs → CloudWatch Logs
 
@@ -9,11 +9,11 @@ forward to CloudWatch automatically if the cluster has the CloudWatch Container
 Insights add-on enabled:
 
 ```bash
-aws eks update-kubeconfig --region us-west-1 --name sneha-streaming-cluster
+aws eks update-kubeconfig --region us-east-1 --name sneha-streaming-cluster
 
 # enable Container Insights (creates log groups per namespace/pod automatically)
 curl -s https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/quickstart/cwagent-fluent-bit-quickstart.yaml \
-  | sed "s/{{cluster_name}}/sneha-streaming-cluster/;s/{{region_name}}/us-west-1/" \
+  | sed "s/{{cluster_name}}/sneha-streaming-cluster/;s/{{region_name}}/us-east-1/" \
   | kubectl apply -f -
 ```
 
@@ -31,7 +31,7 @@ aws cloudwatch put-metric-alarm \
   --dimensions Name=ClusterName,Value=sneha-streaming-cluster \
   --statistic Average --period 300 --threshold 80 \
   --comparison-operator GreaterThanThreshold --evaluation-periods 2 \
-  --region us-west-1
+  --region us-east-1
 ```
 
 ## 3) What to screenshot for submission
