@@ -13,7 +13,9 @@
 set -euxo pipefail
 
 # --- Java (required by Jenkins) ---
-dnf install -y java-17-amazon-corretto
+# Jenkins 2.500+ requires Java 21+; installing 17 causes a silent startup
+# failure (checked via: sudo -u jenkins JAVA_HOME=... /usr/bin/jenkins)
+dnf install -y java-21-amazon-corretto
 
 # --- Jenkins ---
 curl -fsSL https://pkg.jenkins.io/redhat-stable/jenkins.repo -o /etc/yum.repos.d/jenkins.repo
