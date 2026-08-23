@@ -164,7 +164,6 @@ pipeline {
 
                     "\$HELM_CMD" upgrade --install ${HELM_RELEASE} ./streamingapp \
                       --namespace ${K8S_NAMESPACE} \
-                      --create-namespace \
                       --set frontend.image=${ECR_BASE}/frontend:${IMAGE_TAG} \
                       --set authService.image=${ECR_BASE}/authservice:${IMAGE_TAG} \
                       --set streamingService.image=${ECR_BASE}/streamingservice:${IMAGE_TAG} \
