@@ -182,9 +182,29 @@ pipeline {
     post {
         success {
             echo "All microservices built, pushed, and deployed to EKS successfully!"
+            withCredentials([[
+                $class: 'AmazonWebServicesCredentialsBinding',
+                credentialsId: 'sneha-ecr-cred'
+            ]]) {
+                sh """
+                aws sns publish --region ${AWS_REGION} \
+                  --topic-arn arn:aws:sns:${AWS_REGION}:${ACCOUNT_ID}:sneha-deploy-success \
+                  --message 'StreamingApp build #${BUILD_NUMBER} deployed successfully to EKS'
+                """
+            }
         }
         failure {
             echo "Pipeline failed during build, push, or EKS deployment."
+            withCredentials([[
+                $class: 'AmazonWebServicesCredentialsBinding',
+                credentialsId: 'sneha-ecr-cred'
+            ]]) {
+                sh """
+                aws sns publish --region ${AWS_REGION} \
+                  --topic-arn arn:aws:sns:${AWS_REGION}:${ACCOUNT_ID}:sneha-deploy-failure \
+                  --message 'StreamingApp build #${BUILD_NUMBER} failed — check Jenkins console'
+                """
+            }
         }
     }
 }
