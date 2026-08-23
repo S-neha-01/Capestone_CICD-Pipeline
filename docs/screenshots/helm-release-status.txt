@@ -1,0 +1,2 @@
+NAME        	NAMESPACE   	REVISION	UPDATED                                	STATUS  	CHART             	APP VERSION
+streamingapp	streamingapp	1       	2026-08-23 11:10:30.085059679 +0000 UTC	deployed	streamingapp-0.1.0	1.16.0     

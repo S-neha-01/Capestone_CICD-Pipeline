@@ -1,0 +1,15 @@
+NAME                                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/mongo                           1/1     1            1           5m6s
+deployment.apps/streamingapp-adminservice       1/1     1            1           5m6s
+deployment.apps/streamingapp-authservice        1/1     1            1           5m6s
+deployment.apps/streamingapp-chatservice        1/1     1            1           5m6s
+deployment.apps/streamingapp-frontend           1/1     1            1           5m6s
+deployment.apps/streamingapp-streamingservice   1/1     1            1           5m6s
+
+NAME                                    TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)     AGE
+service/mongo                           ClusterIP   10.100.21.56     <none>        27017/TCP   5m7s
+service/streamingapp-adminservice       ClusterIP   10.100.118.68    <none>        3003/TCP    5m7s
+service/streamingapp-authservice        ClusterIP   10.100.5.1       <none>        3001/TCP    5m7s
+service/streamingapp-chatservice        ClusterIP   10.100.175.55    <none>        3004/TCP    5m7s
+service/streamingapp-frontend           ClusterIP   10.100.142.200   <none>        80/TCP      5m7s
+service/streamingapp-streamingservice   ClusterIP   10.100.127.129   <none>        3002/TCP    5m7s

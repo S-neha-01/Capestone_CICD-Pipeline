@@ -1,0 +1,7 @@
+NAME                                             READY   STATUS    RESTARTS   AGE    IP               NODE                             NOMINATED NODE   READINESS GATES
+mongo-986c9bb95-plccd                            1/1     Running   0          5m4s   192.168.38.35    ip-192-168-49-79.ec2.internal    <none>           <none>
+streamingapp-adminservice-7c6c46cb9-sflr5        1/1     Running   0          5m4s   192.168.20.60    ip-192-168-24-248.ec2.internal   <none>           <none>
+streamingapp-authservice-5c9d58cc46-rs9cv        1/1     Running   0          5m4s   192.168.16.255   ip-192-168-24-248.ec2.internal   <none>           <none>
+streamingapp-chatservice-68f445bb78-vqjn5        1/1     Running   0          5m4s   192.168.18.68    ip-192-168-24-248.ec2.internal   <none>           <none>
+streamingapp-frontend-7ff7df5b-vxctw             1/1     Running   0          5m4s   192.168.44.117   ip-192-168-49-79.ec2.internal    <none>           <none>
+streamingapp-streamingservice-85bf664f8b-jfbrs   1/1     Running   0          5m4s   192.168.10.206   ip-192-168-24-248.ec2.internal   <none>           <none>
