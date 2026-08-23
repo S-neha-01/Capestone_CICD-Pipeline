@@ -9,6 +9,25 @@ control, containerization, CI, Kubernetes deployment, monitoring, and ChatOps.
 For the detailed, step-by-step status of each brief requirement (with evidence),
 see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
+## Contents
+
+- [Architecture](#architecture)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Prerequisites](#prerequisites)
+- [Environment Configuration](#environment-configuration)
+- [Running Locally with Docker Compose](#running-locally-with-docker-compose)
+- [Local Development (without Docker)](#local-development-without-docker)
+- [Kubernetes Deployment (EKS + Helm)](#kubernetes-deployment-eks--helm)
+- [CI/CD Pipeline in Action](#cicd-pipeline-in-action)
+- [Monitoring](#monitoring)
+- [ChatOps](#chatops)
+- [Security Design — Least-Privilege CI Credentials](#security-design--least-privilege-ci-credentials)
+- [Real Issues Hit and Fixed](#real-issues-hit-and-fixed)
+- [Infrastructure Lifecycle](#infrastructure-lifecycle)
+- [Feature Highlights](#feature-highlights)
+- [Testing](#testing)
+- [Submission Documentation](#submission-documentation)
+
 ## Architecture
 
 ```
@@ -61,6 +80,25 @@ git push → Jenkins → docker build (5 services, parallel)
 | ChatOps (bonus) | SNS + AWS Chatbot → Slack | [`infra/chatops-setup.md`](./infra/chatops-setup.md) |
 | Command reference | — | [`helm.md`](./helm.md) |
 
+## Prerequisites
+
+Versions actually used to build and deploy this project:
+
+| Tool | Version used | Purpose |
+| --- | --- | --- |
+| Docker / Docker Compose | 24+ | Local container builds and orchestration |
+| Node.js | 18 (Alpine, per Dockerfiles) | Runtime for all 5 services |
+| MongoDB | 6 | Shared database |
+| AWS CLI | v2 | All AWS operations (ECR, EKS, IAM, SNS, CloudWatch) |
+| eksctl | 0.230.0 | EKS cluster + managed node group provisioning |
+| kubectl | 1.34+ | Kubernetes cluster interaction |
+| Helm | 3.18+ | Chart templating and deployment |
+| Jenkins | 2.500+ (requires Java 21+) | CI/CD orchestration |
+
+An AWS account with permissions for ECR, EKS, EC2, IAM, CloudWatch, and SNS
+is required for the cloud-deployed path; Docker Compose alone is sufficient
+for local development.
+
 ## Environment Configuration
 
 Each service reads its config from environment variables — see
@@ -111,7 +149,9 @@ cd frontend && npm start
 The [`streamingapp/`](./streamingapp) Helm chart deploys all 5 services plus
 MongoDB to an EKS cluster (`sneha-streaming-cluster`, `us-east-1`, 2×`t3.small`
 managed nodes). Jenkins runs this automatically on every pipeline run; to do
-it manually:
+it manually (the cluster below has since been torn down post-verification —
+see [Infrastructure Lifecycle](#infrastructure-lifecycle) — so recreate it
+first if reproducing this):
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name sneha-streaming-cluster
@@ -187,6 +227,73 @@ future pass (needs interactive OAuth in the console); see
 ![SNS topic detail — sneha-deploy-success](./docs/screenshots/sns-topic-success-detail.png)
 
 ![SNS topic detail — sneha-deploy-failure](./docs/screenshots/sns-topic-failure-detail.png)
+
+## Security Design — Least-Privilege CI Credentials
+
+The Jenkins instance that runs this pipeline (`jenkinsacademics.herovired.com`)
+is shared by the entire cohort — 500+ jobs in one flat, unscoped namespace with
+no per-student folders or isolation. A Jenkins credential at global scope is
+technically referenceable by *any* job on that instance, so this pipeline does
+**not** use a broad admin AWS credential. Instead:
+
+- A dedicated IAM user (`sneha-jenkins-ci-scoped`) was created with an inline
+  policy limited to exactly three actions: `ecr:GetAuthorizationToken`
+  (account-wide, required by the ECR API), ECR push/pull scoped to the
+  `streamingapp/*` repositories only, and `eks:DescribeCluster` on this one
+  named cluster — nothing else.
+- Kubernetes-side access was granted via an **EKS Access Entry** bound to the
+  `AmazonEKSEditPolicy`, scoped with `type=namespace,namespaces=streamingapp`
+  — meaning the CI user could deploy inside the `streamingapp` namespace and
+  nowhere else on the cluster, not even other namespaces on the same cluster.
+- `--create-namespace` was deliberately removed from the Helm deploy command
+  once this was in place, since creating a namespace requires cluster-scope
+  permission the CI user intentionally does not have — the namespace is
+  pre-created once by a cluster admin instead.
+- The credential and its access were deleted entirely once the pipeline was
+  verified and evidence was captured (see [Infrastructure Lifecycle](#infrastructure-lifecycle)).
+
+## Real Issues Hit and Fixed
+
+Concrete problems encountered while getting this pipeline to actually work end
+to end — not a hypothetical list, each one blocked a real pipeline run:
+
+1. **Helm `--create-namespace` failing under least-privilege**: the scoped CI
+   IAM user correctly had zero cluster-scope Kubernetes permissions, so
+   Helm's namespace-create call was rejected with `namespaces is forbidden`.
+   Fixed by pre-creating the `streamingapp` namespace once as a cluster admin
+   and dropping `--create-namespace` from the Jenkinsfile.
+2. **Stale `cloudwatch-agent` image tag**: the official AWS Container
+   Insights quickstart manifest pins a specific image tag
+   (`1.300071.0`) that no longer exists in the public ECR registry, causing
+   `ErrImagePull` on every node. Fixed by repointing the daemonset to
+   `:latest`.
+3. **Missing IAM permissions for the CloudWatch agent**: the EKS node
+   instance role had no CloudWatch permissions by default, so the (correctly
+   running) agent pods failed every `PutLogEvents`/`PutMetricData` call with
+   `AccessDeniedException`. Fixed by attaching AWS's managed
+   `CloudWatchAgentServerPolicy` to the node role, then restarting the agent
+   pods to pick up fresh instance-profile credentials.
+4. **EKS API version mismatch on cluster creation**: `eksctl create cluster`
+   initially failed with `1.30 is no longer supported` — AWS had already
+   dropped that Kubernetes version. Fixed by bumping the cluster spec to 1.31.
+5. **Leftover fork-owner defaults**: `docker-compose.yml` shipped with a
+   previous contributor's S3 bucket name (`rajk-saw-batch-14`) baked in as the
+   fallback default for `AWS_S3_BUCKET`, and a mismatched default region.
+   Replaced with a neutral placeholder (`your-s3-bucket-name`) and the
+   correct region default.
+
+## Infrastructure Lifecycle
+
+The AWS resources described above (EKS cluster, ECR images, SNS topics,
+CloudWatch alarm/log groups, and the scoped IAM user) were **provisioned,
+verified with real pipeline runs, evidenced with the screenshots in this
+README, and then fully torn down** to avoid ongoing cost — none of it is
+live right now. The Terraform-free, `eksctl`-based provisioning path is fully
+scripted and reproducible: recreate the cluster with the config implied by
+[`Jenkinsfile`](./Jenkinsfile)'s `EKS_CLUSTER`/`AWS_REGION` values, re-run
+[`infra/monitoring-setup.md`](./infra/monitoring-setup.md) and
+[`infra/chatops-setup.md`](./infra/chatops-setup.md), and trigger the Jenkins
+job again — the pipeline itself needs no changes to redeploy from scratch.
 
 ## Feature Highlights
 
