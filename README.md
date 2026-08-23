@@ -123,6 +123,31 @@ kubectl get pods -n streamingapp
 
 ![Pods running in the streamingapp namespace](./docs/screenshots/eks-pods-running.png)
 
+![EKS cluster in the AWS console](./docs/screenshots/eks-cluster-console.png)
+
+## CI/CD Pipeline in Action
+
+Jenkins pipeline (`Sneha-StreamingApp-Capstone`) running the full
+checkout → build → push → deploy flow on every commit:
+
+![Jenkins pipeline stage view, all stages green](./docs/screenshots/jenkins-pipeline-success.png)
+
+## Monitoring
+
+CloudWatch Container Insights showing live pod/node metrics for the cluster,
+plus the CPU utilization alarm:
+
+![CloudWatch Container Insights dashboard](./docs/screenshots/cloudwatch-dashboard.png)
+
+![CloudWatch high-CPU alarm](./docs/screenshots/cloudwatch-alarm.png)
+
+## ChatOps
+
+Deploy success/failure notifications published to SNS from the Jenkinsfile
+`post` block:
+
+![SNS topics in the AWS console](./docs/screenshots/sns-topics-console.png)
+
 ## Feature Highlights
 
 - **S3-backed adaptive streaming** with secure signed uploads for admins.
