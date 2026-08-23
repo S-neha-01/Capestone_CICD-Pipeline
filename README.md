@@ -1,79 +1,127 @@
-# StreamingApp
+# StreamingApp — DevOps Capstone
 
-Stream premium video content, host live watch parties, and manage your catalogue with a modern microservice architecture. The platform now ships with a production-ready admin portal, real-time chat, S3-backed adaptive streaming, and a redesigned cinematic frontend experience.
+A microservice video-streaming platform (auth, catalogue, admin uploads, live chat)
+containerized, built, and deployed end-to-end with a real CI/CD pipeline: **Docker →
+Jenkins → ECR → EKS (Helm) → CloudWatch → SNS/Slack**.
+
+This repo is the capstone submission covering the full DevOps brief — version
+control, containerization, CI, Kubernetes deployment, monitoring, and ChatOps.
+For the detailed, step-by-step status of each brief requirement (with evidence),
+see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 ## Architecture
 
-| Service | Port | Description |
+```
+                        ┌─────────────┐
+                        │   frontend  │  React SPA, nginx, port 3000
+                        └──────┬──────┘
+                               │
+        ┌──────────┬──────────┼──────────┬──────────┐
+        ▼          ▼          ▼          ▼          ▼
+   ┌────────┐ ┌──────────┐ ┌───────┐ ┌────────┐
+   │  auth  │ │streaming │ │ admin │ │  chat  │
+   │ :3001  │ │  :3002   │ │ :3003 │ │ :3004  │
+   └───┬────┘ └────┬─────┘ └───┬───┘ └───┬────┘
+       │           │           │         │
+       └───────────┴─────┬─────┴─────────┘
+                          ▼
+                    ┌──────────┐        ┌────────────┐
+                    │  mongo   │        │  S3 (video │
+                    │ :27017   │        │   assets)  │
+                    └──────────┘        └────────────┘
+```
+
+| Service | Port | Purpose |
 | --- | --- | --- |
-| `authService` | 3001 | User authentication, registration, JWT issuance |
-| `streamingService` | 3002 | Video catalogue, S3 playback endpoints, public APIs |
-| `adminService` | 3003 | Dedicated admin microservice for asset management and uploads |
-| `chatService` | 3004 | Websocket + REST chat for live watch parties |
-| `frontend` | 3000 | React SPA with revamped UI and integrated chat |
+| `authService` | 3001 | Registration, login, JWT issuance |
+| `streamingService` | 3002 | Video catalogue, S3-backed playback, thumbnails |
+| `adminService` | 3003 | Admin-only upload and video/asset management |
+| `chatService` | 3004 | REST + Socket.IO real-time chat per video room |
+| `frontend` | 3000 | React SPA — browse, player, chat, admin dashboard |
 | `mongo` | 27017 | Shared MongoDB instance |
 
-All backend services share common database models and utilities through `backend/common`.
+See **[CODE_STRUCTURE.md](./CODE_STRUCTURE.md)** for the full repo layout and
+what each file/folder does.
+
+## CI/CD Pipeline
+
+```
+git push → Jenkins (EC2) → docker build (5 services, parallel)
+         → ECR login/tag/push → helm upgrade --install → EKS
+         → CloudWatch metrics/logs → SNS → Slack (success/failure)
+```
+
+| Stage | Tool | Config |
+| --- | --- | --- |
+| Source control | Git / GitHub | this repo |
+| CI orchestration | Jenkins on EC2 | [`Jenkinsfile`](./Jenkinsfile), bootstrapped via [`infra/jenkins-ec2-userdata.sh`](./infra/jenkins-ec2-userdata.sh) |
+| Image registry | Amazon ECR | 5 repos under `streamingapp/*` |
+| Container orchestration | Amazon EKS + Helm | chart at [`streamingapp/`](./streamingapp) |
+| Monitoring | CloudWatch Container Insights | [`infra/monitoring-setup.md`](./infra/monitoring-setup.md) |
+| ChatOps (bonus) | SNS + AWS Chatbot → Slack | [`infra/chatops-setup.md`](./infra/chatops-setup.md) |
+| Command reference | — | [`helm.md`](./helm.md) |
 
 ## Environment Configuration
 
 Each service reads its config from environment variables — see
-[`.env.example`](./.env.example) at the repo root for the full list of
-variable names each service expects (ports, Mongo URI, JWT secret, AWS/S3
-settings, frontend build-time API URLs). Copy it to `.env` and fill in real
-values locally; never commit the populated `.env` (already gitignored).
+[`.env.example`](./.env.example) for the full list (ports, Mongo URI, JWT
+secret, AWS/S3 settings, frontend build-time API URLs). Copy it to `.env` and
+fill in real values locally; the populated `.env` is gitignored and never
+committed.
 
-## Running with Docker Compose
+## Running Locally with Docker Compose
 
-1. Populate the environment variables above (or rely on the defaults baked into `docker-compose.yml`).
-2. Build and start the stack:
-   ```bash
-   docker-compose up --build
-   ```
-   Resulting images:
+```bash
+docker-compose up --build
+```
 
-   ![docker images output showing all 5 built service images](./docs/screenshots/docker-images-list.png)
+Resulting images:
 
-3. Navigate to `http://localhost:3000` for the web app:
+![docker images output showing all 5 built service images](./docs/screenshots/docker-images-list.png)
+
+Navigate to `http://localhost:3000`:
 
 ![StreamingApp frontend running at localhost:3000](./docs/screenshots/frontend-live.png)
 
-The compose file provisions MongoDB plus all four Node.js microservices. S3 credentials are optional for local testing—you can still browse seeded metadata, but streaming requires valid S3 objects.
-
-All six containers (`frontend`, `auth`, `streaming`, `admin`, `chat`, `mongo`) running healthy:
+All six containers (`frontend`, `auth`, `streaming`, `admin`, `chat`, `mongo`)
+running healthy:
 
 ![StreamingApp containers running in Docker Desktop](./docs/screenshots/docker-desktop-containers.png)
 
-## Local Development
-
-Install dependencies for each service:
+## Local Development (without Docker)
 
 ```bash
-# auth service
+# install
 cd backend/authService && npm install
-
-# streaming service
 cd ../streamingService && npm install
-
-# admin service
 cd ../adminService && npm install
-
-# chat service
 cd ../chatService && npm install
-
-# frontend
 cd ../../frontend && npm install
-```
 
-Run the services (in separate terminals) after starting MongoDB:
-
-```bash
+# run (separate terminals, after starting MongoDB)
 cd backend/authService && npm run dev
 cd backend/streamingService && npm run dev
 cd backend/adminService && npm run dev
 cd backend/chatService && npm run dev
 cd frontend && npm start
 ```
+
+## Kubernetes Deployment (EKS + Helm)
+
+The [`streamingapp/`](./streamingapp) Helm chart deploys all 5 services plus
+MongoDB to an EKS cluster. Jenkins runs this automatically on every pipeline
+run; to do it manually:
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name sneha-streaming-cluster
+cd streamingapp
+helm upgrade --install streamingapp . --namespace streamingapp --create-namespace
+kubectl get pods -n streamingapp
+```
+
+![EKS nodes ready](./docs/screenshots/eks-nodes-ready.png)
+
+![Pods running in the streamingapp namespace](./docs/screenshots/eks-pods-running.png)
 
 ## Feature Highlights
 
@@ -82,14 +130,21 @@ cd frontend && npm start
 - **Real-time chat** overlay in the player (Socket.IO + persistent message history).
 - **Modern React experience** featuring cinematic hero sections, dynamic carousels, and responsive design.
 - **Role-aware access control** across frontend routes and backend microservices.
+- **Fully automated CI/CD**: a `git push` builds, pushes, and redeploys all 5 services to EKS with no manual steps.
 
 ## Testing
 
-Automated tests are not yet included. Recommended smoke checks:
+Recommended smoke checks:
 
 1. Register and log in through the web UI.
 2. Upload a small video + thumbnail via the admin dashboard (requires valid S3 credentials).
 3. Confirm playback from the browse page and verify that chat messages broadcast between multiple browser tabs.
+
+## Submission Documentation
+
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** — step-by-step status of every capstone brief requirement, with evidence/screenshots called out per step.
+- **[CODE_STRUCTURE.md](./CODE_STRUCTURE.md)** — repository layout and service responsibilities.
+- **[helm.md](./helm.md)** — full command reference (build, push, Helm, kubectl access modes).
 
 ## License
 

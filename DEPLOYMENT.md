@@ -4,7 +4,7 @@ Submission documentation tracking each step of the DevOps capstone brief. Status
 is marked per step; screenshot placeholders are called out where evidence is
 needed for grading.
 
-Repository: https://github.com/S-neha-01/Orchestration-Scaling
+Repository: https://github.com/S-neha-01/Capestone_CICD-Pipeline
 Upstream: https://github.com/UnpredictablePrashant/StreamingApp
 
 ## Architecture
@@ -72,66 +72,70 @@ if AWS credentials are missing) — commit `c0f14ef`.
 
 **Screenshot:** `docker compose ps` showing all 6 containers healthy; `docker images` listing the 5 built images.
 
-⚠️ ECR push for these images is **PENDING** — see Step 3.
+✅ All 5 images pushed to ECR (`378436334075.dkr.ecr.us-east-1.amazonaws.com/streamingapp/*:latest`).
 
 ---
 
-## Step 3 — AWS CLI / Account Access ⏸️ BLOCKED
+## Step 3 — AWS CLI / Account Access ✅ DONE
 
-AWS CLI is installed and authenticates successfully:
+The original account (975050024946) stayed locked to `sts:GetCallerIdentity`
+only — see the original blocker evidence still below. Moved to a second,
+fully-authorized personal AWS account (378436334075, `us-east-1`) instead:
+
+```bash
+aws sts get-caller-identity --profile cloud-automation
+# UserId: AIDAVQHEQGH5XFVXAYYJY, Account: 378436334075, User: Sneha
+```
+
+Verified real access (not just identity) across every service the pipeline
+needs: ECR, EC2, EKS, VPC, CloudWatch, SNS.
+
+**Screenshot:** `aws sts get-caller-identity` output for the working account; IAM console showing attached policies.
+
+<details>
+<summary>Original blocked-account evidence (kept for the record)</summary>
+
 ```bash
 aws sts get-caller-identity
 # UserId: AIDA6GBMCU7ZPXD52PJHJ, Account: 975050024946
 ```
 
-However this IAM user has **no authorization** beyond `sts:GetCallerIdentity` —
+This IAM user had **no authorization** beyond `sts:GetCallerIdentity` —
 confirmed via repeated `AccessDeniedException`/`UnauthorizedOperation` on:
 - `ecr:DescribeRepositories`
 - `ec2:DescribeInstances`, `ec2:DescribeKeyPairs`, `ec2:DescribeVpcs`
 - `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies`, `iam:ListGroupsForUser`
 
-This blocks Steps 4 (Jenkins on EC2), 2's ECR push, 5 (EKS), 6 (CloudWatch),
-and 9 (SNS). Requested permissions from account admin; pending grant or
-provisioning of an alternate AWS account with sufficient access.
+Requested permissions from the account admin; no grant arrived, so the
+capstone was completed on a second personal account instead (see above).
 
-**Screenshot:** the `AccessDeniedException` output, as evidence the blocker is real and was investigated, not skipped.
+</details>
 
 ---
 
-## Step 4 — Jenkins CI ⏸️ PARTIALLY READY (execution blocked by Step 3)
+## Step 4 — Jenkins CI ⏸️ IN PROGRESS
 
 [`Jenkinsfile`](./Jenkinsfile) defines the full pipeline: checkout → parallel
-image builds → ECR login → tag → push → EKS deploy via Helm. Renamed all
-resource identifiers from the previous fork owner's naming (`rajsaw`) to
-this account's own (`sneha`) — commit `b5f4fc1`:
-- `ECR_BASE` → `.../batch-14/sneha`
+image builds → ECR login → tag → push → EKS deploy via Helm. Resource
+identifiers point at this account (`378436334075`, `us-east-1`) — commit
+`b5f4fc1` and later:
+- `ECR_BASE` → `378436334075.dkr.ecr.us-east-1.amazonaws.com/streamingapp`
 - `EKS_CLUSTER` → `sneha-streaming-cluster`
 - Jenkins `credentialsId` → `sneha-ecr-cred`
 
-[`infra/jenkins-ec2-userdata.sh`](./infra/jenkins-ec2-userdata.sh) is a ready
-EC2 user-data script installing Jenkins, Docker, AWS CLI, kubectl, and Helm on
-boot — run via `aws ec2 run-instances --user-data file://...` once EC2 access
-exists.
+Jenkins deployed via [`infra/jenkins-ec2-userdata.sh`](./infra/jenkins-ec2-userdata.sh)
+on a `t3.medium` EC2 instance (`streamingapp-jenkins`), running Jenkins,
+Docker, AWS CLI, kubectl, and Helm. Access locked to a single trusted IP via
+`streamingapp-jenkins-sg` (ports 22 and 8080 only).
 
-Tried the shared academy Jenkins (`jenkinsacademics.herovired.com`) with the
-brief's provided credentials — returned `401 Unauthorized`; not pursued further
-without valid credentials.
+All 5 images already exist in ECR with the `latest` tag (pushed while
+verifying the account's access ahead of the first Jenkins-triggered run).
+Jenkins pipeline job (`streamingapp-pipeline`) and the `sneha-ecr-cred`
+credential are being created now.
 
-Validated the exact `docker build` commands from the "Build Images" stage
-locally (not just an equivalent build — the literal commands, same tags,
-same context paths) — all 5 succeeded:
-```bash
-docker build -t frontend:latest -t frontend:${IMAGE_TAG} frontend
-docker build -t authservice:latest -t authservice:${IMAGE_TAG} backend/authService
-docker build -f backend/streamingService/Dockerfile -t streamingservice:latest -t streamingservice:${IMAGE_TAG} backend
-docker build -f backend/adminService/Dockerfile -t adminservice:latest -t adminservice:${IMAGE_TAG} backend
-docker build -f backend/chatService/Dockerfile -t chatservice:latest -t chatservice:${IMAGE_TAG} backend
-```
-This confirms the pipeline's build stage will work as written once Jenkins
-actually runs it — only the ECR login/push and EKS deploy stages remain
-unverified pending AWS access.
+**Pending:** first Jenkins-triggered pipeline run (not yet executed through Jenkins itself).
 
-**Pending:** EC2 instance launch, Jenkins credential setup for `sneha-ecr-cred`, first pipeline run.
+**Screenshot:** Jenkins pipeline stage view showing a green end-to-end run, once triggered.
 
 ---
 
