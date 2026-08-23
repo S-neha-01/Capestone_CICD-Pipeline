@@ -46,7 +46,7 @@ what each file/folder does.
 ## CI/CD Pipeline
 
 ```
-git push → Jenkins (EC2) → docker build (5 services, parallel)
+git push → Jenkins → docker build (5 services, parallel)
          → ECR login/tag/push → helm upgrade --install → EKS
          → CloudWatch metrics/logs → SNS → Slack (success/failure)
 ```
@@ -54,7 +54,7 @@ git push → Jenkins (EC2) → docker build (5 services, parallel)
 | Stage | Tool | Config |
 | --- | --- | --- |
 | Source control | Git / GitHub | this repo |
-| CI orchestration | Jenkins on EC2 | [`Jenkinsfile`](./Jenkinsfile), bootstrapped via [`infra/jenkins-ec2-userdata.sh`](./infra/jenkins-ec2-userdata.sh) |
+| CI orchestration | Jenkins (shared academy instance, job `Sneha-StreamingApp-Capstone`) | [`Jenkinsfile`](./Jenkinsfile) — a private single-owner Jenkins on EC2 also exists as a backup, bootstrapped via [`infra/jenkins-ec2-userdata.sh`](./infra/jenkins-ec2-userdata.sh) |
 | Image registry | Amazon ECR | 5 repos under `streamingapp/*` |
 | Container orchestration | Amazon EKS + Helm | chart at [`streamingapp/`](./streamingapp) |
 | Monitoring | CloudWatch Container Insights | [`infra/monitoring-setup.md`](./infra/monitoring-setup.md) |
@@ -109,44 +109,84 @@ cd frontend && npm start
 ## Kubernetes Deployment (EKS + Helm)
 
 The [`streamingapp/`](./streamingapp) Helm chart deploys all 5 services plus
-MongoDB to an EKS cluster. Jenkins runs this automatically on every pipeline
-run; to do it manually:
+MongoDB to an EKS cluster (`sneha-streaming-cluster`, `us-east-1`, 2×`t3.small`
+managed nodes). Jenkins runs this automatically on every pipeline run; to do
+it manually:
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name sneha-streaming-cluster
 cd streamingapp
-helm upgrade --install streamingapp . --namespace streamingapp --create-namespace
+helm upgrade --install streamingapp . --namespace streamingapp
 kubectl get pods -n streamingapp
 ```
 
+All 6 pods (`mongo` + 5 services) running on the cluster, plus the 2 EKS nodes:
+
+![EKS pods running in the streamingapp namespace](./docs/screenshots/eks-pods-running.png)
+
 ![EKS nodes ready](./docs/screenshots/eks-nodes-ready.png)
 
-![Pods running in the streamingapp namespace](./docs/screenshots/eks-pods-running.png)
+Cluster in the AWS console — Active, 1 node group (`streamingapp-workers`, 2 nodes), 0 health issues:
 
-![EKS cluster in the AWS console](./docs/screenshots/eks-cluster-console.png)
+![EKS cluster list in the AWS console](./docs/screenshots/eks-cluster-console.png)
+
+![EKS cluster overview — status, health, upgrade insights](./docs/screenshots/eks-cluster-overview.png)
+
+![EKS cluster details — API endpoint, IAM role, ARN](./docs/screenshots/eks-cluster-details.png)
+
+![EKS node group — streamingapp-workers, desired size 2](./docs/screenshots/eks-nodegroup.png)
+
+![EKS observability dashboard — upgrade readiness checks, all passing](./docs/screenshots/eks-observability-dashboard.png)
 
 ## CI/CD Pipeline in Action
 
-Jenkins pipeline (`Sneha-StreamingApp-Capstone`) running the full
-checkout → build → push → deploy flow on every commit:
+Jenkins pipeline (`Sneha-StreamingApp-Capstone`, run on the shared academy
+Jenkins) executing the full checkout → build → push → deploy flow. The stage
+view below shows the real build history: builds #1 and #2 failing at the
+deploy stage (a namespace-permission issue caught and fixed mid-session — see
+[DEPLOYMENT.md](./DEPLOYMENT.md), Step 4), then #3 and #4
+green end-to-end:
 
-![Jenkins pipeline stage view, all stages green](./docs/screenshots/jenkins-pipeline-success.png)
+![Jenkins pipeline stage view across all 4 builds](./docs/screenshots/jenkins-pipeline-stage-view.png)
+
+![Jenkins build #4 summary — SUCCESS](./docs/screenshots/jenkins-build-summary.png)
+
+![Jenkins console output — checkout from this repo](./docs/screenshots/jenkins-console-output.png)
 
 ## Monitoring
 
-CloudWatch Container Insights showing live pod/node metrics for the cluster,
-plus the CPU utilization alarm:
+CloudWatch Container Insights deployed to the cluster, with a CPU utilization
+alarm. Real metrics/logs verified flowing (not just "pods are running") —
+see [DEPLOYMENT.md](./DEPLOYMENT.md), Step 6, for
+the two real bugs fixed to get here (stale image tag, missing IAM policy):
 
-![CloudWatch Container Insights dashboard](./docs/screenshots/cloudwatch-dashboard.png)
+![CloudWatch overview — EKS Cluster alarms, OK](./docs/screenshots/cloudwatch-overview.png)
 
-![CloudWatch high-CPU alarm](./docs/screenshots/cloudwatch-alarm.png)
+![CloudWatch Container Insights dashboard — live CPU/memory/network charts](./docs/screenshots/cloudwatch-dashboard.png)
+
+![CloudWatch high-CPU alarm detail — OK, threshold 80%](./docs/screenshots/cloudwatch-alarm.png)
+
+![CloudWatch alarms list](./docs/screenshots/cloudwatch-alarms-list.png)
+
+![CloudWatch Container Insights log groups](./docs/screenshots/cloudwatch-log-groups.png)
+
+![CloudWatch Logs Insights query editor](./docs/screenshots/cloudwatch-logs-insights.png)
 
 ## ChatOps
 
 Deploy success/failure notifications published to SNS from the Jenkinsfile
-`post` block:
+`post` block — verified for real on build #4 (`MessageId` returned by
+`aws sns publish`). AWS Chatbot → Slack wiring is the one piece left for a
+future pass (needs interactive OAuth in the console); see
+[`infra/chatops-setup.md`](./infra/chatops-setup.md).
 
-![SNS topics in the AWS console](./docs/screenshots/sns-topics-console.png)
+![SNS dashboard — 2 topics, 1 subscription](./docs/screenshots/sns-dashboard.png)
+
+![SNS topics in the AWS console — sneha-deploy-success, sneha-deploy-failure](./docs/screenshots/sns-topics-console.png)
+
+![SNS topic detail — sneha-deploy-success](./docs/screenshots/sns-topic-success-detail.png)
+
+![SNS topic detail — sneha-deploy-failure](./docs/screenshots/sns-topic-failure-detail.png)
 
 ## Feature Highlights
 
